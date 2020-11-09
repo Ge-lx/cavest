@@ -5,11 +5,12 @@ const { get: httpGET } = require('http');
 const merge = require('deepmerge');
 const express = require('express');
 
-const config_path = '/home/pi/.config/cava/config'
+const config_path = '/home/pi/.config/cava/config';
+const ps_host = 'http://192.168.178.90';
 
 const default_config = {
 	general: {
-		framerate: 30,
+		framerate: 60,
 		autosens: 0,
 		sensitivity: 12,
 		bars: 60,
@@ -100,16 +101,26 @@ const port = 1235;
 const app = express();
 
 app.get('/pixels/brightness/:v', (req, res, next) => {
-	httpGET(`http://192.168.178.90/brightness/${req.params.v}`, () => {
+	httpGET(`${ps_host}/brightness/${req.params.v}`, () => {
 		res.sendStatus(200);
 	});
 });
 
 app.get('/pixels/color/:r/:g/:b', (req, res, next) => {
 	let c = req.params;
-	httpGET(`http://192.168.178.90/color/${c.r}/${c.g}/${c.b}`, () => {
+	httpGET(`${ps_host}/color/${c.r}/${c.g}/${c.b}`, () => {
 		res.sendStatus(200);
 	});
+});
+
+app.get('/pixels/fill', (req, res, next) => {
+	httpGET(`${ps_host}/fill`);
+	res.sendStatus(200);
+});
+
+app.get('/pixels/clear', (req, res, next) => {
+	httpGET(`${ps_host}/clear`);
+	res.sendStatus(200);
 });
 
 app.get('/cava/start', (req, res, next) => {
@@ -120,6 +131,10 @@ app.get('/cava/start', (req, res, next) => {
 app.get('/cava/stop', (req, res, next) => {
 	stop_cava_service();
 	res.sendStatus(200);
+});
+
+app.get('/status/config', (req, res, next) => {
+	res.json(current_config);
 });
 
 app.get('/cava/config/:config', (req, res, next) => {

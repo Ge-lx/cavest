@@ -21,14 +21,41 @@ pixels = neopixel.NeoPixel(
 
 # RGB (values ranging from 0 to 1) for the color
 current_color = (1, 0, 0)
+filled = False
+
+def get_color (amp):
+    return (int(current_color[0] * amp),
+            int(current_color[1] * amp),
+            int(current_color[2] * amp))
 
 def on_pixel_data (data):
+    global filled
+    filled = False
     for i in range(60):
-        pixels[i] = (
-            int(current_color[0] * data[i]),
-            int(current_color[1] * data[i]),
-            int(current_color[2] * data[i]))
+        pixels[i] = get_color(data[i])
     pixels.show()
+
+def fill_pixels ():
+    global filled
+    filled = True
+    pixels.fill(get_color(255))
+    pixels.show()
+
+def clear_pixels ():
+    global filled
+    filled = False
+    pixels.fill((0, 0, 0))
+    pixels.show()
+
+def set_pixel_brightness (value):
+    pixels.brightness = value
+    pixels.show()
+
+def set_pixel_color (value):
+    global current_color
+    current_color = value
+    if filled:
+        fill_pixels()
 
 # ======== TCP Data Socket ================
 def queue ():
@@ -73,20 +100,25 @@ def on_request_GET (req):
             if (value < 0 or value > 1):
                 print(f'Brightness must be positive and <= 1. Got {value}')
             else:
-                pixels.brightness = value
+                set_pixel_brightness(value)
                 print(f'Changed brightness to {value}')
         except:
             print(f'Could not parse brightness: {value}')
 
-    if (req.path.startswith('/color')):
+    elif (req.path.startswith('/color')):
         color = req.path[7:]
         try:
-            global current_color
             (r, g, b) = color.split('/')
-            current_color = (float(r), float(g), float(b))
+            set_pixel_color((float(r), float(g), float(b)))
             print(f'Changed pixel color to RGB{current_color}')
         except:
             print(f'Could not parse pixel color: {color}')
+    
+    elif (req.path.startswith('/fill')):
+        fill_pixels()
+
+    elif (req.path.startswith('/clear')):
+        clear_pixels()
 
     return req.do_HEAD()
 
