@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<title>Cavest</title>
+		<meta name="author" content="gelx">
+
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+		<meta name="theme-color" content="#151515">
+
+		<style type="text/css">
+			* {
+				box-sizing: border-box;
+				/*outline: 1px solid red;*/
+			}
+
+			html {
+				font-family: 'Quicksand', sans-serif;
+				color: #1a1a1a;
+				height: 100%;
+				user-select: none;
+			}
+
+			body {
+				margin: 0;
+				padding: 0;
+				height: 100%;
+			}
+
+			bnc-root {
+				display: flex;
+				flex-direction: column;
+				justify-content: stretch;
+				min-height: 100%;
+			}
+
+			bnc-element {
+				display: flex;
+				flex-grow: 1;
+			}
+
+			a {
+				text-decoration: none;
+			}
+
+			i {
+				font-size: 1.6em;
+			}
+
+			button {
+				background-color: #ed6142;
+				border: 2px solid #151515;
+				color: #151515;
+				min-width: 80px;
+				font-size: 18px;
+				border-radius: 18px;
+				padding: 3px 10px;
+				box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.42);
+				cursor: pointer;
+				transition: box-shadow 0.15s ease-out;
+				vertical-align: baseline;
+			}
+			.highlighted button {
+				background-color: #151515;
+				color: white;
+			}
+			button:hover {
+				box-shadow: 0px 2px 8px 0px rgba(0, 0, 0, 0.42);
+			}
+
+			i.placeholder {
+			    font-size: 100px;
+			    color: rgba(0, 0, 0, 0.12);
+			    padding: 20px 70px;
+			    margin: auto;
+			}
+
+			input[type=range] {
+				-webkit-appearance: none;
+				padding: 0 10px;
+			}
+			input[type=range]:focus {
+				outline: none;
+			}
+			input[type=range]::-webkit-slider-runnable-track {
+				width: 100%;
+				height: 8px;
+				cursor: pointer;
+				border: 1px solid rgba(0, 0, 0, 0.22);
+				border-radius: 5px;
+			}
+			input[type=range]::-webkit-slider-thumb {
+				height: 20px;
+				width: 20px;
+				border-radius: 10px;
+				box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.42);
+				background: #151515;
+				cursor: pointer;
+				-webkit-appearance: none;
+				margin-top: -8px;
+			}
+
+			/* PANELS */
+			.panel {
+				display: flex;
+				flex-flow: column nowrap;
+			}
+			.panel__header {
+				padding: 6px 20px;
+				background-color: #151515;
+				color: #ed6142;
+				display: flex;
+				flex-direction: row;
+				align-items: center;
+			}
+			.panel__header > h2 {
+				margin: 0;
+				font-weight: bold;
+			}
+			.panel__header > i {
+				font-size: 1.4em;
+				padding-right: 10px;
+			}
+
+			.panel__section {
+				padding: 0px 20px;
+				border-bottom: 2px solid #151515;
+				display: flex;
+				flex-flow: column nowrap;
+				flex-grow: 1;
+				box-shadow: 0px 0px 4px 1px inset rgba(0, 0, 0, 0.22);
+			}
+
+			.panel__section.highlighted {
+				background-color: #ed6142;
+			}
+			.panel__section.highlighted > h3 {
+				font-size: 30px;
+			}
+			.panel__section > h3 {
+				margin: 15px 0px 5px 0px;
+				font-size: 20px;
+				color: #1a1a1a;
+				text-align: center;
+			}
+			.panel__section > p {
+				padding: 0;
+			}
+			.panel__row {
+				display: flex;
+				flex-flow: row wrap;
+				justify-content: space-between;
+				align-items: center;
+				padding: 10px 5px;
+				border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+			}
+			.panel__row:last-of-type {
+				border-bottom: none;
+			}
+			.panel__row > .grow {
+				flex-grow: 1;
+			}
+			.panel__row > .start {
+				align-self: flex-start;
+			}
+			.panel__row > p {
+				font-weight: bolder;
+				margin: 0px;
+			}
+			.panel__row > p.key {
+				margin-right: 10px;
+			}
+
+			/* Tomato styles */
+
+			@media only screen and (min-width: 600px) {
+				.panel {
+					display: flex;
+					align-self: center;
+					box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.42);
+					border: 2px solid #151515;
+					border-radius: 10px;
+					overflow: hidden;
+					margin-top: 20px;
+				}
+
+				.info {
+					margin: 40px auto;
+				}
+			}
+
+			.buttons__holder {
+				display: flex;
+				width: 100%;
+				justify-content: space-between;
+				align-items: stretch;
+
+				margin-bottom: 10px;
+			}
+
+			.buttons__holder .button__big {
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				padding: 10px;
+				position: relative;
+
+				background-color: #151515;
+				box-shadow: 0px 0px 4px 0px rgba(0, 0, 0, 0.42);
+				border-radius: 5px;
+				color: #ed6142;
+				margin-bottom: 20px;
+			}
+
+			.buttons__holder .button__big > i {
+				font-size: 4em;
+			}
+
+			.buttons__holder .button__big > p {
+				position: absolute;
+				margin: 0;
+				bottom: -30px;
+
+				color: #151515;
+				font-size: 1.2em;
+				font-weight: bold;
+			}
+
+			.buttons__holder .button__text {
+				display: flex;
+				align-items: center;
+				margin-bottom: 20px;
+			}
+
+			.buttons__holder .button__text > p {
+				margin: 0;
+				font-size: 1.2em;
+				font-weight: bold;
+			}
+
+			.colors__holder {
+				margin-left: 10px;
+			}
+
+			.color {
+				display: flex;
+				padding: 5px 0;
+				align-items: center;
+			}
+
+			.color > p {
+				font-weight: bolder;
+				width: 30px;
+				text-align: center;
+				padding: 5px 8px;
+				margin: 0;
+			}
+
+			.color > input{
+				flex-grow: 1;
+			}
+
+			.color.red > input::-webkit-slider-runnable-track {
+				background-color: #ed6142;
+			}
+			.color.green > input::-webkit-slider-runnable-track {
+				background-color: #0d910d;
+			}
+			.color.blue > input::-webkit-slider-runnable-track {
+				background-color: #2896c4;
+			}
+
+			.presets__holder {
+				display: ;
+				justify-content: space-around;
+
+			}
+
+			.presets__holder .preset {
+				background-color: #151515;
+				padding: 13px 15px;
+				margin: 5px 10px;
+				border-radius: 5px
+			}
+
+			.presets__holder .preset > p {
+				margin: 0;
+				font-size: 1.6em;
+				font-weight: bold;
+				color: #ed6142;
+			}
+
+		</style>
+
+		<link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
+		<script type="text/javascript" src="https://ge-lx.github.io/bunch/bunch.js"></script>
+		<script type="text/javascript" src="https://ge-lx.github.io/bunch/bnc.js"></script>
+		<script type="text/javascript">
+			(function ({ define, resolve, Observable, ComputedObservable }) {
+				const sendFetch = async (method = 'GET', url, body) => {
+					const request = {
+						method,
+						mode: 'cors',
+						cache: 'no-cache',
+						redirect: 'follow',
+						referrerPolicy: 'origin'
+					};
+
+					if (typeof body === 'object') {
+						request.headers = { 'Content-Type': 'application/json' };
+						request.body = JSON.stringify(body)
+					}
+
+					
+					let response;
+					try {
+						response = await fetch(url, request);
+					} catch (error) {
+						throw new Error(error.message, url, request);
+					}
+					const data = await response.json();
+					if (response.ok) {
+						return data;
+					} else {
+						throw new Error(response.status, data.error, url, request);
+					}
+				};
+
+				define('bind', () => {
+					return (scope, element, obj) => {
+						const results = {};
+						for (let attributeName of obj) {
+							const expression = element.getAttribute(attributeName);
+							if (attributeName.endsWith('$')) {
+								results[attributeName] = scope.$get$(expression);
+							} else {
+								results[attributeName] = scope.$get(expression);
+							}
+						}
+						return results;
+					};
+				});
+
+				define('general', [{ noCache: true }, (bind) => {
+					return {
+						$template: `
+							<div class="panel__section highlighted">
+								<h3>General</h3>
+								<div class="panel__row">
+									<div class="buttons__holder">
+										<div class="button__big" bnc-click="start()">
+											<i class="ri-bar-chart-grouped-fill"></i>
+											<p>MUSIC</p>
+										</div>
+										<div class="button__text">
+											<p>OR</p>
+										</div>
+										<div class="button__big" bnc-click="stop(); setTimeout(clear, 50)">
+											<i class="ri-shut-down-fill"></i>
+											<p>OFF</p>
+										</div>
+										<div class="button__big" bnc-click="stop(); setTimeout(fill, 50)">
+											<i class="ri-lightbulb-fill"></i>
+											<p>STATIC</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						`
+					}
+				}]);
+
+				define('pixels', [{ noCache: true }, (bind, resources, debounce) => {
+					const brightness$ = Observable(0.5);
+					brightness$.onChange(debounce(50, val => {
+						resources.setBrightness(brightness$.value)
+					}));
+
+					const red$ = Observable(1);
+					const green$ = Observable(0.6);
+					const blue$ = Observable(0.1);
+					const updateColor = debounce(50, () => {
+						resources.setColor(`${red$.value}/${green$.value}/${blue$.value}`);
+					});
+					red$.onChange(updateColor);
+					green$.onChange(updateColor);
+					blue$.onChange(updateColor);
+
+					return {
+						$template: `
+							<div class="panel__section">
+								<h3>Pixels</h3>
+								<div class="panel__row">
+									<p class="key">Brightness</p>
+									<i class="ri-loader-2-line"></i>
+									<input type="range" class="grow"
+										bnc-attr="min: 0, max: 1.0, step: 0.05"
+										bnc-model="brightness$"
+									></input>
+									<i class="ri-sun-fill"></i>
+								</div>
+								<div class="panel__row">
+									<p class="key">Color</p>
+									<div class="colors__holder grow">
+										<div class="color red">
+											<p>R</p>
+											<i class="ri-loader-2-line"></i>
+											<input type="range" bnc-attr="min: 0, max: 1.0, step: 0.05" bnc-model="red$"></input>
+											<i class="ri-sun-fill"></i>
+										</div>
+										<div class="color green">
+											<p>G</p>
+											<i class="ri-loader-2-line"></i>
+											<input type="range" bnc-attr="min: 0, max: 1.0, step: 0.05" bnc-model="green$"></input>
+											<i class="ri-sun-fill"></i>
+										</div>
+										<div class="color blue">
+											<p>B</p>
+											<i class="ri-loader-2-line"></i>
+											<input type="range" bnc-attr="min: 0, max: 1.0, step: 0.05" bnc-model="blue$"></input>
+											<i class="ri-sun-fill"></i>
+										</div>
+									</div>
+								</div>
+							</div>
+						`,
+						brightness$,
+						red$, green$, blue$
+					}
+				}]);
+
+				define('presets', [{ noCache: true}, (bind, resources) => {
+					return {
+						$template: `
+							<div class="panel__section">
+								<h3>Presets</h3>
+								<div class="panel__row presets__holder" bnc-for="preset in presets">
+									<div class="preset" bnc-click="useConfig(preset.key)">
+										<p bnc-bind="preset.name"></p>
+									</div>
+								</div>
+							</div>
+						`,
+						presets: [
+							{ key: 'default', name: 'Default' },
+							{ key: 'hectic', name: 'Responsive' },
+							{ key: 'smooth', name: 'Smooth' },
+							{ key: 'dim', name: 'Dim' },
+							{ key: 'bright', name: 'Bright' },
+						]
+					}
+				}]);
+
+				define('resources', () => {
+					const resources = {};
+
+					const resource = (url, defaultValue) => {
+						const obs$ = Observable(defaultValue);
+						const update = async () => {
+							obs$.value = await sendFetch('GET', url);
+						};
+
+						setInterval(update, 10 * 1000);
+						update();
+						return obs$;
+					};
+
+					const endpoint = (url) => {
+						return async function sendFetchToEndpoint (...values) {
+							const filledUrl = url.replace(/\/:(\d)/g, (_, i) => `/${values[i]}`);
+							try {
+								return await sendFetch('GET', filledUrl);
+							} catch (e) {
+								// console.error(`Could not fetch ${filledUrl}: `, e);
+							}
+							
+						};
+					};
+
+
+					const origin = window.location.origin;
+					return {
+						currentConfig$: resource(`${origin}/status/config`, {}),
+
+						start: endpoint(`${origin}/cava/start`),
+						stop: endpoint(`${origin}/cava/stop`),
+						useConfig: endpoint(`${origin}/cava/config/:0`),
+						setValue: endpoint(`${origin}/cava/set/:0/:1`),
+						setColor: endpoint(`${origin}/pixels/color/:0`),
+						setBrightness: endpoint(`${origin}/pixels/brightness/:0`),
+						fill: endpoint(`${origin}/pixels/fill`),
+						clear: endpoint(`${origin}/pixels/clear`)
+					};
+				});
+
+			}(bnc_bunch));		
+		</script>
+	</head>
+	<body>
+		<bnc-root>
+			<bnc-module name="resources">
+				<div class="info panel">
+					<div class="panel__header">
+						<i class="ri-bar-chart-box-fill"></i>
+						<h2>Cavest</h2>
+					</div>
+
+					<bnc-element name="general"></bnc-element>
+					<bnc-element name="pixels"></bnc-element>
+					<bnc-element name="presets"></bnc-element>
+				</div>
+			</bnc-module>
+		</bnc-root>
+	</body>
+</html>

@@ -10,7 +10,7 @@ const ps_host = 'http://192.168.178.90';
 
 const default_config = {
 	general: {
-		framerate: 60,
+		framerate: 50,
 		autosens: 0,
 		sensitivity: 12,
 		bars: 60,
@@ -158,7 +158,8 @@ app.get('/cava/set/:section/:key/:value', (req, res, next) => {
 	update_config(merge(current_config, changed_config));
 	res.sendStatus(200);
 });
- 
+
+app.use(express.static('http_root'));
 app.listen(port, () => {
 	update_config(current_config);
 	start_cava_service();

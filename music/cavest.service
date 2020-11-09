@@ -6,6 +6,7 @@ Wants=network-online.target
 After=network-online.target
 
 [Service]
+WorkingDirectory=/home/pi/cavest
 ExecStart=node /home/pi/cavest/cavest.js
 Restart=always
 RestartSec=12
