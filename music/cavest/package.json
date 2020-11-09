@@ -1,0 +1,10 @@
+{
+  "name": "cavest",
+  "version": "1.0.0",
+  "main": "cavest.js",
+  "license": "MIT",
+  "dependencies": {
+    "deepmerge": "^4.2.2",
+    "express": "^4.17.1"
+  }
+}

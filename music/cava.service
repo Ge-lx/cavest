@@ -1,0 +1,17 @@
+[Unit]
+Description=CAVA - Console-based Audio Visualizer for ALSA
+Documentation=https://github.com/karlstav/cava
+Wants=sound.target
+After=sound.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=forking
+ExecStart=bash -c "/usr/bin/cava | netcat 192.168.178.90 1234 & echo $! >> /home/pi/.config/cava/cava.pid"
+PIDFile=/home/pi/.config/cava/cava.pid
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=default.target

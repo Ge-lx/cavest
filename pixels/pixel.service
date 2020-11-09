@@ -1,0 +1,14 @@
+[Unit]
+Description=A python pixel server for neopixel
+Wants=sound.target
+After=sound.target
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=python3 /home/pi/pixelserver.py
+Restart=always
+RestartSec=12
+
+[Install]
+WantedBy=default.target
