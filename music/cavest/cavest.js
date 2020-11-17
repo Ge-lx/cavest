@@ -1,12 +1,12 @@
 const { exec } = require('child_process');
 const { writeFile } = require('fs');
-const { get: httpGET } = require('http');
+const udp = require('dgram');
 
 const merge = require('deepmerge');
 const express = require('express');
 
 const config_path = '/home/pi/.config/cava/config';
-const ps_host = 'http://192.168.178.90';
+const ps_host = '192.168.178.175';
 
 const default_config = {
 	general: {
@@ -100,26 +100,95 @@ const update_config = (config) => {
 const port = 1235;
 const app = express();
 
-app.get('/pixels/brightness/:v', (req, res, next) => {
-	httpGET(`${ps_host}/brightness/${req.params.v}`, () => {
-		res.sendStatus(200);
+let upd_socket = udp.createSocket('udp4');
+const send_socket_message = data => {
+	upd_socket.send(Buffer.from(data), 8080, ps_host, err => {
+		if (err) {
+			console.error('Error sending socket message: ', err);
+			try {
+				upd_socket.close();
+			} catch {
+				console.error('Error closing socket: ', err);
+			}
+			upd_socket = udp.createSocket('udp4');	
+		}
 	});
-});
+};
 
-app.get('/pixels/color/:r/:g/:b', (req, res, next) => {
-	let c = req.params;
-	httpGET(`${ps_host}/color/${c.r}/${c.g}/${c.b}`, () => {
-		res.sendStatus(200);
-	});
-});
+const SOCKET_MSG = {
+	fill: 0,
+	clear: 1,
+	brightness: 2,
+	color: 3
+};
+
+const current_state = {
+	enabled: false,
+	brightness: 120,
+	color: { r: 0, g: 0, b: 0, w: 255 }
+};
+
+let interval_timer;
+const timed_shutoff = () => {
+	// console.log('Starting timer');
+	clearInterval(interval_timer);
+	if (current_state.enabled === false) {
+		return;
+	} else {
+		let brightness = current_state.brightness;
+		let step = brightness / (30 * 10.0);
+		// console.log('Step: ', step);
+		interval_timer = setInterval(() => {
+			brightness -= step;
+			// console.log('now: ', brightness);
+			if (brightness <= 1) {
+				current_state.enabled = false;
+				send_socket_message([SOCKET_MSG.clear]);
+				clearInterval(interval_timer);
+			} else {
+				send_socket_message([SOCKET_MSG.brightness, Math.floor(brightness)]);
+			}
+		}, 100);
+	}
+}
 
 app.get('/pixels/fill', (req, res, next) => {
-	httpGET(`${ps_host}/fill`);
+	// console.log('fill');
+	clearInterval(interval_timer);
+	current_state.enabled = true;
+	send_socket_message([SOCKET_MSG.fill]);
 	res.sendStatus(200);
 });
 
 app.get('/pixels/clear', (req, res, next) => {
-	httpGET(`${ps_host}/clear`);
+	// console.log('clear');
+	clearInterval(interval_timer);
+	current_state.enabled = false;
+	send_socket_message([SOCKET_MSG.clear]);
+	res.sendStatus(200);
+});
+
+app.get('/pixels/timer', (req, res, next) => {
+	// console.log('timer');
+	clearInterval(interval_timer);
+	timed_shutoff();
+	res.sendStatus(200);
+});
+
+app.get('/pixels/brightness/:v', (req, res, next) => {
+	// console.log('brightness');
+	clearInterval(interval_timer);
+	current_state.brightness = req.params.v;
+	send_socket_message([SOCKET_MSG.brightness, req.params.v]);
+	res.sendStatus(200);
+});
+
+app.get('/pixels/color/:r/:g/:b/:w', (req, res, next) => {
+	// console.log('color');
+	clearInterval(interval_timer);
+	let c = req.params;
+	current_state.color = c;
+	send_socket_message([SOCKET_MSG.color, c.r, c.g, c.b, c.w]);
 	res.sendStatus(200);
 });
 
@@ -131,10 +200,6 @@ app.get('/cava/start', (req, res, next) => {
 app.get('/cava/stop', (req, res, next) => {
 	stop_cava_service();
 	res.sendStatus(200);
-});
-
-app.get('/status/config', (req, res, next) => {
-	res.json(current_config);
 });
 
 app.get('/cava/config/:config', (req, res, next) => {
@@ -157,6 +222,14 @@ app.get('/cava/set/:section/:key/:value', (req, res, next) => {
 
 	update_config(merge(current_config, changed_config));
 	res.sendStatus(200);
+});
+
+app.get('/status/pixels', (req, res, next) => {
+	res.json(current_state);
+});
+
+app.get('/status/config', (req, res, next) => {
+	res.json(current_config);
 });
 
 app.use(express.static('http_root'));

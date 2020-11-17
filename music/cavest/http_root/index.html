@@ -295,6 +295,8 @@
 		<link href="https://cdn.jsdelivr.net/npm/remixicon@2.5.0/fonts/remixicon.css" rel="stylesheet">
 		<script type="text/javascript" src="https://ge-lx.github.io/bunch/bunch.js"></script>
 		<script type="text/javascript" src="https://ge-lx.github.io/bunch/bnc.js"></script>
+		<!-- <script type="text/javascript" src="bunch.js"></script>
+		<script type="text/javascript" src="bnc.js"></script> -->
 		<script type="text/javascript">
 			(function ({ define, resolve, Observable, ComputedObservable }) {
 				const sendFetch = async (method = 'GET', url, body) => {
@@ -367,24 +369,38 @@
 								</div>
 							</div>
 						`
-					}
+					};
 				}]);
 
 				define('pixels', [{ noCache: true }, (bind, resources, debounce) => {
-					const brightness$ = Observable(0.5);
+					const initalConfig = resources.pixelStatus$.value;
+
+					const brightness$ = Observable(initalConfig.brightness);
 					brightness$.onChange(debounce(50, val => {
 						resources.setBrightness(brightness$.value)
 					}));
 
-					const red$ = Observable(1);
-					const green$ = Observable(0.6);
-					const blue$ = Observable(0.1);
+					const red$ = Observable(initalConfig.color.r);
+					const green$ = Observable(initalConfig.color.g);
+					const blue$ = Observable(initalConfig.color.b);
+					const white$ = Observable(initalConfig.color.w);
 					const updateColor = debounce(50, () => {
-						resources.setColor(`${red$.value}/${green$.value}/${blue$.value}`);
+						setTimeout(() => {
+							resources.setColor(`${red$.value}/${green$.value}/${blue$.value}/${white$.value}`);
+						}, 50); // This prevents red$ form updating the color before blue$ gets updated by pixelStatus$. Yes this is a hack
 					});
 					red$.onChange(updateColor);
 					green$.onChange(updateColor);
 					blue$.onChange(updateColor);
+					white$.onChange(updateColor);
+
+					resources.pixelStatus$.onChange(({brightness, color}) => {
+						red$.value = color.r;
+						green$.value = color.g;
+						blue$.value = color.b;
+						white$.value = color.w;
+						brightness$.value = brightness;
+					});
 
 					return {
 						$template: `
@@ -394,7 +410,7 @@
 									<p class="key">Brightness</p>
 									<i class="ri-loader-2-line"></i>
 									<input type="range" class="grow"
-										bnc-attr="min: 0, max: 1.0, step: 0.05"
+										bnc-attr="min: 0, max: 255, step: 1"
 										bnc-model="brightness$"
 									></input>
 									<i class="ri-sun-fill"></i>
@@ -405,19 +421,25 @@
 										<div class="color red">
 											<p>R</p>
 											<i class="ri-loader-2-line"></i>
-											<input type="range" bnc-attr="min: 0, max: 1.0, step: 0.05" bnc-model="red$"></input>
+											<input type="range" bnc-attr="min: 0, max: 255, step: 1" bnc-model="red$"></input>
 											<i class="ri-sun-fill"></i>
 										</div>
 										<div class="color green">
 											<p>G</p>
 											<i class="ri-loader-2-line"></i>
-											<input type="range" bnc-attr="min: 0, max: 1.0, step: 0.05" bnc-model="green$"></input>
+											<input type="range" bnc-attr="min: 0, max: 255, step: 1" bnc-model="green$"></input>
 											<i class="ri-sun-fill"></i>
 										</div>
 										<div class="color blue">
 											<p>B</p>
 											<i class="ri-loader-2-line"></i>
-											<input type="range" bnc-attr="min: 0, max: 1.0, step: 0.05" bnc-model="blue$"></input>
+											<input type="range" bnc-attr="min: 0, max: 255, step: 1" bnc-model="blue$"></input>
+											<i class="ri-sun-fill"></i>
+										</div>
+										<div class="color white">
+											<p>B</p>
+											<i class="ri-loader-2-line"></i>
+											<input type="range" bnc-attr="min: 0, max: 255, step: 1" bnc-model="white$"></input>
 											<i class="ri-sun-fill"></i>
 										</div>
 									</div>
@@ -425,11 +447,29 @@
 							</div>
 						`,
 						brightness$,
-						red$, green$, blue$
+						red$, green$, blue$, white$
 					}
 				}]);
 
-				define('presets', [{ noCache: true}, (bind, resources) => {
+				define('timed_switchoff', [{ noCache: true }, (bind, resources) => {
+					return {
+						$template: `
+							<div class="panel__section highlighted">
+								<h3>Functions</h3>
+								<div class="panel__row">
+									<div class="buttons__holder">
+										<div class="button__big" bnc-click="timer()">
+											<i class="ri-rest-time-line"></i>
+											<p>OFF 30s</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						`
+					};
+				}]);
+
+				define('presets', [{ noCache: true }, (bind, resources) => {
 					return {
 						$template: `
 							<div class="panel__section">
@@ -452,45 +492,83 @@
 				}]);
 
 				define('resources', () => {
-					const resources = {};
+					const initialLoadPromise = new Promise((resolve, reject) => {
+						let resources = {};
 
-					const resource = (url, defaultValue) => {
-						const obs$ = Observable(defaultValue);
-						const update = async () => {
-							obs$.value = await sendFetch('GET', url);
+						// This assumes that registerLoader() for the last one to register is 
+						// called before the first one calls finishLoader()
+						const initialLoadCheck = (function (){
+							const loaded = {};
+							let done = false;
+
+							const checkIfAllReady = () => {
+								if (Object.values(loaded).every(ready => ready)) {
+									resolve(resources);
+									done = true;
+								}
+							};
+							return {
+								registerLoader: key => {
+									loaded[key] = false
+								},
+								finishLoader: key => {
+									if (done) return;
+									loaded[key] = true;
+									checkIfAllReady();
+								}
+							};
+						}());
+						
+
+						const resource = (url, defaultValue) => {
+							initialLoadCheck.registerLoader(url);
+							const obs$ = Observable(defaultValue);
+							const update = async () => {
+								new_value = await sendFetch('GET', url);
+								if (JSON.stringify(obs$.value) !== JSON.stringify(new_value)) {
+									obs$.value = new_value;
+								}
+								initialLoadCheck.finishLoader(url);
+							};
+
+							setInterval(update, 1 * 1000);
+							update();
+							return obs$;
 						};
 
-						setInterval(update, 10 * 1000);
-						update();
-						return obs$;
-					};
-
-					const endpoint = (url) => {
-						return async function sendFetchToEndpoint (...values) {
-							const filledUrl = url.replace(/\/:(\d)/g, (_, i) => `/${values[i]}`);
-							try {
-								return await sendFetch('GET', filledUrl);
-							} catch (e) {
-								// console.error(`Could not fetch ${filledUrl}: `, e);
-							}
-							
+						const endpoint = (url) => {
+							return async function sendFetchToEndpoint (...values) {
+								const filledUrl = url.replace(/\/:(\d)/g, (_, i) => `/${values[i]}`);
+								try {
+									return await sendFetch('GET', filledUrl);
+								} catch (e) {
+									// console.error(`Could not fetch ${filledUrl}: `, e);
+								}
+							};
 						};
-					};
 
+						const origin = window.location.origin;
+						resources = {
+							currentConfig$: resource(`${origin}/status/config`, {}),
+							pixelStatus$: resource(`${origin}/status/pixels`, {
+								enabled: false,
+								brightness: 255,
+								color: { r: 0, g: 0, b: 0, w: 255 }
+							}),
 
-					const origin = window.location.origin;
-					return {
-						currentConfig$: resource(`${origin}/status/config`, {}),
+							start: endpoint(`${origin}/cava/start`),
+							stop: endpoint(`${origin}/cava/stop`),
+							useConfig: endpoint(`${origin}/cava/config/:0`),
+							setValue: endpoint(`${origin}/cava/set/:0/:1`),
+							setColor: endpoint(`${origin}/pixels/color/:0`),
+							setBrightness: endpoint(`${origin}/pixels/brightness/:0`),
+							fill: endpoint(`${origin}/pixels/fill`),
+							clear: endpoint(`${origin}/pixels/clear`),
+							timer: endpoint(`${origin}/pixels/timer`)
+						};
+					});
 
-						start: endpoint(`${origin}/cava/start`),
-						stop: endpoint(`${origin}/cava/stop`),
-						useConfig: endpoint(`${origin}/cava/config/:0`),
-						setValue: endpoint(`${origin}/cava/set/:0/:1`),
-						setColor: endpoint(`${origin}/pixels/color/:0`),
-						setBrightness: endpoint(`${origin}/pixels/brightness/:0`),
-						fill: endpoint(`${origin}/pixels/fill`),
-						clear: endpoint(`${origin}/pixels/clear`)
-					};
+					return initialLoadPromise;
 				});
 
 			}(bnc_bunch));		
@@ -507,7 +585,8 @@
 
 					<bnc-element name="general"></bnc-element>
 					<bnc-element name="pixels"></bnc-element>
-					<bnc-element name="presets"></bnc-element>
+					<bnc-element name="timed_switchoff"></bnc-element>
+					<!-- <bnc-element name="presets"></bnc-element> -->
 				</div>
 			</bnc-module>
 		</bnc-root>
