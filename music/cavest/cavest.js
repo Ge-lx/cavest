@@ -76,7 +76,7 @@ const write_config = (config, cb) => {
 	writeFile(config_path, str, (err) => {
 		current_config = config;
 	    if (err) {
-	    	console.error(`Error writing configuration file: `, err)
+	    	// console.error(`Error writing configuration file: `, err)
 	    }
     	console.log('Configuration updated.');
     	cb();
@@ -136,7 +136,7 @@ const timed_shutoff = () => {
 		return;
 	} else {
 		let brightness = current_state.brightness;
-		let step = brightness / (30 * 10.0);
+		let step = brightness / (60 * 10.0);
 		// console.log('Step: ', step);
 		interval_timer = setInterval(() => {
 			brightness -= step;
@@ -145,16 +145,77 @@ const timed_shutoff = () => {
 				current_state.enabled = false;
 				send_socket_message([SOCKET_MSG.clear]);
 				clearInterval(interval_timer);
+				setTimeout(() => {
+					binary_clock_enabled = true;
+				}, 1000);
 			} else {
 				send_socket_message([SOCKET_MSG.brightness, Math.floor(brightness)]);
 			}
 		}, 100);
 	}
-}
+};
+
+let binary_clock_enabled = true;
+const binary_clock = (function () {
+	let black = [0, 0, 0, 0];
+	let red = [1, 0, 0, 0];
+	let white = [0, 0, 0, 1];
+	let blue = [0, 0, 1, 0];
+
+	const decimal_to_colors = (d, min, c) => {
+		const out = [];
+		do {
+			v = d & 1;
+			out.push([ c[0]*v, c[1]*v, c[2]*v, c[3]*v ]);
+			d >>= 1;
+		} while (d != 0);
+		while (out.length < min) {
+			out.push(black);
+		}
+		return out.reverse();
+	};
+
+	function flatDeep(arr, d = 1) {
+		return d > 0 ? arr.reduce((acc, val) => acc.concat(Array.isArray(val) ? flatDeep(val, d - 1) : val), []) : arr.slice();
+	};
+
+	let last_blink = 0;
+	const update = () => {
+		const now = new Date();
+		const out = [];
+
+		last_blink = last_blink === 1 ? 0 : 1;
+
+		out.push(decimal_to_colors(0, 120, black));
+		out.push(decimal_to_colors(1, 1, blue));
+		out.push(decimal_to_colors(now.getHours() % 12, 4,  white));
+		out.push(decimal_to_colors(last_blink, 1, red));
+		let minutes = now.getMinutes();
+		out.push(decimal_to_colors(minutes >> 4, 2, white));
+		out.push(decimal_to_colors(1, 1, blue));
+		out.push(decimal_to_colors(minutes & 15, 4, white));
+		out.push(decimal_to_colors(1, 1, blue));
+
+		return new Uint8Array(flatDeep(out, 2));
+	};
+
+	const loop = () => {
+		if (binary_clock_enabled) {
+			const out_bytes = update();
+			send_socket_message(out_bytes);
+		}
+	}
+	setInterval(loop, 1000);
+}());
+
+const disable_special_functions = () => {
+	clearInterval(interval_timer);
+	binary_clock_enabled = false;
+};
 
 app.get('/pixels/fill', (req, res, next) => {
 	// console.log('fill');
-	clearInterval(interval_timer);
+	disable_special_functions();
 	current_state.enabled = true;
 	send_socket_message([SOCKET_MSG.fill]);
 	res.sendStatus(200);
@@ -162,7 +223,7 @@ app.get('/pixels/fill', (req, res, next) => {
 
 app.get('/pixels/clear', (req, res, next) => {
 	// console.log('clear');
-	clearInterval(interval_timer);
+	disable_special_functions();
 	current_state.enabled = false;
 	send_socket_message([SOCKET_MSG.clear]);
 	res.sendStatus(200);
@@ -170,14 +231,21 @@ app.get('/pixels/clear', (req, res, next) => {
 
 app.get('/pixels/timer', (req, res, next) => {
 	// console.log('timer');
-	clearInterval(interval_timer);
+	disable_special_functions();
 	timed_shutoff();
+	res.sendStatus(200);
+});
+
+app.get('/pixels/clock', (req, res, next) => {
+	disable_special_functions();
+	send_socket_message([SOCKET_MSG.clear]);
+	binary_clock_enabled = true;
 	res.sendStatus(200);
 });
 
 app.get('/pixels/brightness/:v', (req, res, next) => {
 	// console.log('brightness');
-	clearInterval(interval_timer);
+	disable_special_functions();
 	current_state.brightness = req.params.v;
 	send_socket_message([SOCKET_MSG.brightness, req.params.v]);
 	res.sendStatus(200);
@@ -185,7 +253,7 @@ app.get('/pixels/brightness/:v', (req, res, next) => {
 
 app.get('/pixels/color/:r/:g/:b/:w', (req, res, next) => {
 	// console.log('color');
-	clearInterval(interval_timer);
+	disable_special_functions();
 	let c = req.params;
 	current_state.color = c;
 	send_socket_message([SOCKET_MSG.color, c.r, c.g, c.b, c.w]);

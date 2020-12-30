@@ -460,7 +460,11 @@
 									<div class="buttons__holder">
 										<div class="button__big" bnc-click="timer()">
 											<i class="ri-rest-time-line"></i>
-											<p>OFF 30s</p>
+											<p>OFF 60s</p>
+										</div>
+										<div class="button__big" bnc-click="clock()">
+											<i class="ri-time-fill"></i>
+											<p>CLOCK</p>
 										</div>
 									</div>
 								</div>
@@ -564,7 +568,8 @@
 							setBrightness: endpoint(`${origin}/pixels/brightness/:0`),
 							fill: endpoint(`${origin}/pixels/fill`),
 							clear: endpoint(`${origin}/pixels/clear`),
-							timer: endpoint(`${origin}/pixels/timer`)
+							timer: endpoint(`${origin}/pixels/timer`),
+							clock: endpoint(`${origin}/pixels/clock`)
 						};
 					});
 
