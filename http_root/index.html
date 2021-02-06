@@ -357,11 +357,11 @@
 										<div class="button__text">
 											<p>OR</p>
 										</div>
-										<div class="button__big" bnc-click="stop(); setTimeout(clear, 50)">
+										<div class="button__big" bnc-click="setTimeout(clear, 50)">
 											<i class="ri-shut-down-fill"></i>
 											<p>OFF</p>
 										</div>
-										<div class="button__big" bnc-click="stop(); setTimeout(fill, 50)">
+										<div class="button__big" bnc-click="setTimeout(fill, 50)">
 											<i class="ri-lightbulb-fill"></i>
 											<p>STATIC</p>
 										</div>
@@ -486,11 +486,13 @@
 							</div>
 						`,
 						presets: [
-							{ key: 'default', name: 'Default' },
-							{ key: 'hectic', name: 'Responsive' },
-							{ key: 'smooth', name: 'Smooth' },
-							{ key: 'dim', name: 'Dim' },
-							{ key: 'bright', name: 'Bright' },
+							{ key: 0, name: 'Spectrum Value' },
+							{ key: 1, name: 'Waveform' },
+							{ key: 2, name: 'Spectrum Hue' },
+							{ key: 3, name: 'Spectrum Smooth'},
+							{ key: 4, name: 'Folded Fourier'}
+							// { key: 'dim', name: 'Dim' },
+							// { key: 'bright', name: 'Bright' },
 						]
 					}
 				}]);
@@ -553,17 +555,17 @@
 
 						const origin = window.location.origin;
 						resources = {
-							currentConfig$: resource(`${origin}/status/config`, {}),
-							pixelStatus$: resource(`${origin}/status/pixels`, {
-								enabled: false,
+							pixelStatus$: resource(`${origin}/status`, {
+								pixels_enabled: false,
+								visualization_enabled: false,
 								brightness: 255,
 								color: { r: 0, g: 0, b: 0, w: 255 }
 							}),
 
-							start: endpoint(`${origin}/cava/start`),
-							stop: endpoint(`${origin}/cava/stop`),
-							useConfig: endpoint(`${origin}/cava/config/:0`),
-							setValue: endpoint(`${origin}/cava/set/:0/:1`),
+							start: endpoint(`${origin}/visualization/start`),
+							stop: endpoint(`${origin}/visualization/stop`),
+							useConfig: endpoint(`${origin}/visualization/config/:0`),
+							// setValue: endpoint(`${origin}/cava/set/:0/:1`),
 							setColor: endpoint(`${origin}/pixels/color/:0`),
 							setBrightness: endpoint(`${origin}/pixels/brightness/:0`),
 							fill: endpoint(`${origin}/pixels/fill`),
@@ -591,7 +593,7 @@
 					<bnc-element name="general"></bnc-element>
 					<bnc-element name="pixels"></bnc-element>
 					<bnc-element name="timed_switchoff"></bnc-element>
-					<!-- <bnc-element name="presets"></bnc-element> -->
+					<bnc-element name="presets"></bnc-element>
 				</div>
 			</bnc-module>
 		</bnc-root>
